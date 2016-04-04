@@ -1,0 +1,26 @@
+# depslib dependency file v1.0
+1459728919 source:c:\users\cesar\onedrive\octavo\graficas\proyectofinalgraficas\main.cpp
+	<windows.h>
+	<GLUT/glut.h>
+	<GL/glut.h>
+	<stdlib.h>
+	<iostream>
+	<stdio.h>
+	<assert.h>
+	<fstream>
+	<string>
+	"imageloader.h"
+	"Image.h"
+
+1452712558 c:\users\cesar\onedrive\octavo\graficas\parcial 1\glut\include\gl\glut.h
+	<windows.h>
+	<GL/gl.h>
+	<GL/glu.h>
+
+1414595972 c:\users\cesar\onedrive\octavo\graficas\proyectofinalgraficas\imageloader.h
+
+1459298281 c:\users\cesar\onedrive\octavo\graficas\proyectofinalgraficas\image.h
+	<assert.h>
+	<fstream>
+	"imageloader.h"
+
