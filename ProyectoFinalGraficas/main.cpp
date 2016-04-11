@@ -30,12 +30,13 @@ int vidas = 2;
 int segundos = 60;
 
 // variables de texturas
-const int TEXTURE_COUNT=5;
+const int TEXTURE_COUNT=6;
 const int TEXTURE_MENU = 0;
 const int TEXTURE_INSTRUCCIONES = 1;
 const int TEXTURE_CREDITOS = 2;
 const int TEXTURE_FONDO = 3;
 const int TEXTURE_BLOQUE = 4;
+const int TEXTURE_STATS = 5;
 static GLuint texName[TEXTURE_COUNT];
 int bannerSeleccionado = TEXTURE_MENU;
 
@@ -116,6 +117,10 @@ void initRendering()
     image = loadBMP(ruta);
     loadTexture(image,TEXTURE_BLOQUE);
 
+    sprintf(ruta,"%s%s", fullPath.c_str() , "Texturas/stats.bmp");
+    image = loadBMP(ruta);
+    loadTexture(image,TEXTURE_STATS);
+
     delete image;
 }
 
@@ -163,8 +168,8 @@ void dibujar_paredes(){
 
     glBindTexture(GL_TEXTURE_2D, texName[TEXTURE_BLOQUE]);
     //* Como se van a generar las coordenadas?
-    glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
-    glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+    glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
+    glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
 
     //* Activar la generación de coordenadas
     glEnable(GL_TEXTURE_GEN_S);
@@ -276,38 +281,54 @@ void dibujar_banner() {
 }
 
 void dibujar_stats() {
-
      // desplegar las opciones de primera linea
-    char opcionesArriba[200]="";
+    char opcionesArriba[10]="";
     sprintf(opcionesArriba,"%s","Vidas: ");
     // agregar cantidad de vidas al string
     char vidasString[3];
     itoa (vidas,vidasString,10);
     strcat(opcionesArriba, vidasString);
 
-    glColor3ub(255,255,255);
+    glColor3ub(70,140,120);
     glRasterPos2f(-30,10);
     for (int k=0; opcionesArriba[k]!='\0'; k++) {
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, opcionesArriba[k]);
     }
 
     // desplegar las opciones de segunda linea
-    char opcionesAbajo[200]="";
+    char opcionesAbajo[10]="";
     sprintf(opcionesAbajo,"%s","Segs: ");
     // agregar cantidad de vidas al string
     char segundosString[3];
     itoa (segundos,segundosString,10);
     strcat(opcionesAbajo, segundosString);
 
-    glColor3ub(255,255,255);
+
     glRasterPos2f(-30,-10);
     for (int k=0; opcionesAbajo[k]!='\0'; k++) {
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, opcionesAbajo[k]);
     }
 
+    // dibujar textura
+    glColor3ub(255,255,255);
+    glBindTexture(GL_TEXTURE_2D, texName[TEXTURE_STATS]);
+    glBegin(GL_QUADS);
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-40, -40, 0);
+
+    glTexCoord2f(1.0f, 0.0f);
+    glVertex3f(40, -40, 0);
+
+    glTexCoord2f(1.0f, 1.0f);
+    glVertex3f(40, 40, 0);
+
+    glTexCoord2f(0.0f, 1.0f);
+    glVertex3f(-40, 40, 0);
+    glEnd();
+
     //colorear fondo (rectangulo)
-    glColor3ub(200,120,0);
-    glRectd(-viewportGameWidth+statsSquare,-bannerHeight,viewportGameWidth+statsSquare,bannerHeight);
+    //glColor3ub(200,120,0);
+    //glRectd(-viewportGameWidth+statsSquare,-bannerHeight,viewportGameWidth+statsSquare,bannerHeight);
 }
 
 void display(){
