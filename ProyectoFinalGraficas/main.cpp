@@ -20,6 +20,7 @@ using namespace std;
 //Amount of models and model ids
 #define MODEL_COUNT 5
 #define PLAYER_MOD 0
+#define PILDORA_MOD 1
 
 GLMmodel models[MODEL_COUNT];
 
@@ -40,17 +41,21 @@ bool juegoIniciado = false;
 bool ganoJuego = false;
 
 // variables jugador
-float posXJugador = 0;
-float posYJugador = 0;
+float posXJugador = -25;
+float posYJugador = 28;
+float velocidadPersonaje = 0.5;
 
 // variables de texturas
-const int TEXTURE_COUNT=6;
+const int TEXTURE_COUNT=7;
 const int TEXTURE_MENU = 0;
 const int TEXTURE_INSTRUCCIONES = 1;
 const int TEXTURE_CREDITOS = 2;
 const int TEXTURE_FONDO = 3;
 const int TEXTURE_BLOQUE = 4;
 const int TEXTURE_STATS = 5;
+
+const int TEXTURE_JUGADOR = 6;
+
 static GLuint texName[TEXTURE_COUNT];
 int bannerSeleccionado = TEXTURE_MENU;
 
@@ -60,6 +65,21 @@ void getParentPath()
         fullPath.erase(i,1);
     }
 }
+
+bool checaColisionParedes(float x, float y){
+    // revisar si la siguiente posicion del jugador no colisiona con algun muro
+
+    // PARED SUPERIOR DERECHA
+    return ((x >= 14 && x <= 29) && (y >= 22.5 && y <= 25)) ||
+    // PARED SUPERIOR IZQUIERDA
+    ((x <= -14 && x >= -29) && (y >= 22.5 && y <= 25)) ||
+    // PARED INFERIOR DERECHA
+    ((x >= 14 && x <= 29) && (y <= -22.5 && y >= -25)) ||
+    // PARED INFERIOR IZQUIERDA
+    ((x <= -14 && x >= -29) && (y <= -22.5 && y >= -25));
+
+}
+
 
 void myTimer(int i) {
     if (juegoIniciado){
@@ -108,6 +128,7 @@ void initRendering()
     glLightfv(GL_LIGHT0, GL_DIFFUSE, directedLight);
     glLightfv(GL_LIGHT0, GL_POSITION, directedLightPos);
     glEnable(GL_DEPTH_TEST);
+    glShadeModel(GL_SMOOTH);
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
     glEnable(GL_NORMALIZE);
@@ -145,11 +166,21 @@ void initRendering()
     image = loadBMP(ruta);
     loadTexture(image,TEXTURE_STATS);
 
+    sprintf(ruta,"%s%s", fullPath.c_str() , "objects/violetacolores3.bmp");
+    image = loadBMP(ruta);
+    loadTexture(image,TEXTURE_JUGADOR);
+
     //personaje jugador
     string rutaObj = fullPath + "objects/VioletObj.obj";
     models[PLAYER_MOD] = *glmReadOBJ(rutaObj.c_str());
     glmUnitize(&models[PLAYER_MOD]);
     glmVertexNormals(&models[PLAYER_MOD], 90.0, GL_TRUE);
+
+    //personaje pildora
+    rutaObj = fullPath + "objects/pildora.obj";
+    models[PILDORA_MOD] = *glmReadOBJ(rutaObj.c_str());
+    glmUnitize(&models[PILDORA_MOD]);
+    glmVertexNormals(&models[PILDORA_MOD], 90.0, GL_TRUE);
 
     delete image;
 }
@@ -174,6 +205,7 @@ void reshape(int width, int height){
 
 
 void dibujar_paredes(){
+
     // fondo
     glBindTexture(GL_TEXTURE_2D, texName[TEXTURE_FONDO]);
     glBegin(GL_QUADS);
@@ -190,7 +222,7 @@ void dibujar_paredes(){
     glVertex3f(-40, 40, 0);
     glEnd();
 
-   glPushMatrix();
+    glPushMatrix();
 
     glBindTexture(GL_TEXTURE_2D, texName[TEXTURE_BLOQUE]);
     //* Como se van a generar las coordenadas?
@@ -204,7 +236,7 @@ void dibujar_paredes(){
     //pared vertical
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
-    glScalef(2,40,0.1);
+    glScalef(2,40,0.3);
     glutSolidCube(1);
     glPushMatrix();
     glLineWidth(2);
@@ -214,7 +246,7 @@ void dibujar_paredes(){
 
     //pared horizontal
     glPushMatrix();
-    glScalef(40,2,0.1);
+    glScalef(40,2,0.3);
     glutSolidCube(1);
     glPushMatrix();
     glLineWidth(2);
@@ -224,7 +256,7 @@ void dibujar_paredes(){
 
     //Muro 1
     glPushMatrix();
-    glTranslatef(-25,25,0);
+    glTranslatef(-25,25,0.1);
     glScalef(18,2,0.1);
     glutSolidCube(1);
     glPushMatrix();
@@ -235,7 +267,7 @@ void dibujar_paredes(){
 
     //Muro 2
     glPushMatrix();
-    glTranslated(25,25,0);
+    glTranslated(25,25,0.1);
     glScalef(18,2,0.1);
     glutSolidCube(1);
     glPushMatrix();
@@ -246,7 +278,7 @@ void dibujar_paredes(){
 
     //Muro 3
     glPushMatrix();
-    glTranslatef(25,-25,0);
+    glTranslatef(25,-25,0.1);
     glScalef(18,2,0.1);
     glutSolidCube(1);
     glPushMatrix();
@@ -257,7 +289,7 @@ void dibujar_paredes(){
 
     //Muro 4
     glPushMatrix();
-    glTranslatef(-25,-25,0);
+    glTranslatef(-25,-25,0.1);
     glScalef(18,2,0.1);
     glutSolidCube(1);
     glPushMatrix();
@@ -269,6 +301,12 @@ void dibujar_paredes(){
     glDisable(GL_TEXTURE_GEN_S);
     glDisable(GL_TEXTURE_GEN_T);
 
+    // PILDORA
+    glPushMatrix();
+    glTranslated(20, posYJugador, 0.2);
+    glScaled(2, 2, 0.08);
+    glRotated(25,1,0,0);
+    glmDraw(&models[PILDORA_MOD],  GLM_TEXTURE);
     glPopMatrix();
 
     // JUGADOR
@@ -277,6 +315,8 @@ void dibujar_paredes(){
     glScaled(4, 4, 0.08);
     glRotated(25,1,0,0);
     glmDraw(&models[PLAYER_MOD], GLM_TEXTURE);
+    glPopMatrix();
+
     glPopMatrix();
 }
 
@@ -345,7 +385,7 @@ void dibujar_stats() {
 void display(){
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glEnable(GL_TEXTURE_2D);
+
 
   glViewport(0,bannerHeight,viewportGameWidth,viewportGameHeight);
   dibujar_paredes();
@@ -391,20 +431,33 @@ void keyboard(unsigned char key, int x, int y){
 
 void mySpecialKeyboard (int key, int x, int y){
     if (juegoIniciado) {
-        if (key == GLUT_KEY_UP) {
-            posYJugador+= 0.5;
-            glutPostRedisplay();
-        } else if (key == GLUT_KEY_DOWN){
-            posYJugador-=0.5;
-            glutPostRedisplay();
-        } else if (key== GLUT_KEY_RIGHT){
-            posXJugador+= 0.5;
-            glutPostRedisplay();
-        } else if (key==GLUT_KEY_LEFT){
-            posXJugador-=0.5;
-            glutPostRedisplay();
+        if (key == GLUT_KEY_UP && posYJugador < 30) {
+            if(!checaColisionParedes(posXJugador, posYJugador+velocidadPersonaje)){
+                posYJugador+= velocidadPersonaje;
+                glutPostRedisplay();
+            }
+        } else if (key == GLUT_KEY_DOWN && posYJugador > -30){
+            if (!checaColisionParedes(posXJugador, posYJugador-velocidadPersonaje)){
+                posYJugador-=velocidadPersonaje;
+                glutPostRedisplay();
+            }
+
+        } else if (key== GLUT_KEY_RIGHT && posXJugador < 30){
+             if (!checaColisionParedes(posXJugador+velocidadPersonaje, posYJugador)){
+                posXJugador+= velocidadPersonaje;
+                glutPostRedisplay();
+             }
+
+        } else if (key==GLUT_KEY_LEFT && posXJugador > -30){
+            if (!checaColisionParedes(posXJugador-velocidadPersonaje, posYJugador)){
+                posXJugador-= velocidadPersonaje;
+                glutPostRedisplay();
+             }
         }
+        cout << "X: " << posXJugador;
+        cout << " Y: " << posYJugador << endl;
     }
+
 }
 
 int main(int argc, char **argv){
