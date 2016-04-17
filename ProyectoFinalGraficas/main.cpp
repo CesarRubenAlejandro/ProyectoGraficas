@@ -18,9 +18,15 @@
 using namespace std;
 
 //Amount of models and model ids
-#define MODEL_COUNT 5
+#define MODEL_COUNT 10
 #define PLAYER_MOD 0
 #define PILDORA_MOD 1
+#define BACTERIA_MOD 2
+#define BEBE_MOD 3
+#define FRUTA_MOD 4
+#define VERDURA_MOD 5
+#define JABON_MOD 6
+#define ANTI_MOD 7
 
 GLMmodel models[MODEL_COUNT];
 
@@ -36,14 +42,49 @@ double statsSquare = 100;
 
 // variables de juego
 int vidas = 2;
-int segundos = 60;
+double segundos = 60.0;
 bool juegoIniciado = false;
 bool ganoJuego = false;
+bool juegoPausado = false;
+int itemsRecogidos = 0;
+int totalItems = 5;
 
 // variables jugador
 float posXJugador = -25;
 float posYJugador = 28;
-float velocidadPersonaje = 0.5;
+float velocidadPersonaje = 0.75;
+float hitBox = 2.5;
+
+// variables items
+// item 1
+float posXIt1 = -3;
+float posYIt1 = 15;
+bool activoIt1 = true;
+// item 2
+float posXIt2 = 19;
+float posYIt2 = 28;
+bool activoIt2 = true;
+// item 3
+float posXIt3 = 2.5;
+float posYIt3 = -2;
+bool activoIt3 = true;
+// item 4
+float posXIt4 = -25;
+float posYIt4 = -5;
+bool activoIt4 = true;
+// item 5
+float posXIt5 = 0;
+float posYIt5 = -25;
+bool activoIt5 = true;
+
+// variables de enemigos
+float posXPildora = 30;
+float posYPildora = 28;
+float posXBacteria = 30;
+float posYBacteria = -28;
+float posXBebe = -30;
+float posYBebe = -28;
+float velocidadEnemigo = 1.25;
 
 // variables de texturas
 const int TEXTURE_COUNT=7;
@@ -76,20 +117,139 @@ bool checaColisionParedes(float x, float y){
     // PARED INFERIOR DERECHA
     ((x >= 14 && x <= 29) && (y <= -22.5 && y >= -25)) ||
     // PARED INFERIOR IZQUIERDA
-    ((x <= -14 && x >= -29) && (y <= -22.5 && y >= -25));
-
+    ((x <= -14 && x >= -29) && (y <= -22.5 && y >= -25)) ||
+    // IZQ CRUZ CENTRAL
+    ((x >= -19 && x <= -1.5) && (y <= 5 && y >= 0)) ||
+    // ARRIBA CRUZ CENTRAL
+    ((x >= -1.5 && x <= 1.5) && (y <= 22 && y >= 5)) ||
+    // DERECHA CRUZ CENTRAL
+    ((x >= 1.5 && x <= 19) && (y <= 5 && y >= 0)) ||
+    // ABAJO CRUZ CENTRAL
+    ((x >= -1.5 && x <= 1.5) && (y >= -17 && y <= 0));
 }
 
+bool checaColisionPersonaje(float x, float y){
+    return ( x<(posXJugador+hitBox) && x >(posXJugador-hitBox)) &&
+        (y<(posYJugador+hitBox) && y >(posYJugador-hitBox));
+}
+
+void movimientoEnemigo(float &x, float &y){
+    if (posXJugador > x){
+        if (!checaColisionParedes(x+velocidadEnemigo,y)){
+            x+=velocidadEnemigo;
+        }
+    } else {
+        if (!checaColisionParedes(x-velocidadEnemigo,y)){
+            x-=velocidadEnemigo;
+        }
+    }
+
+    if (posYJugador > y){
+        if (!checaColisionParedes(x,y+velocidadEnemigo)){
+            y+=velocidadEnemigo;
+        }
+    } else {
+        if (!checaColisionParedes(x,y-velocidadEnemigo)){
+            y-=velocidadEnemigo;
+        }
+    }
+}
+
+void reiniciarPosicionEnemigos(){
+     posXPildora = 30;
+     posYPildora = 28;
+     posXBacteria = 30;
+     posYBacteria = -28;
+     posXBebe = -30;
+     posYBebe = -28;
+}
+
+void reiniciarJuego(){
+    reiniciarPosicionEnemigos();
+    vidas = 2;
+    segundos = 60.0;
+    juegoIniciado = false;
+    ganoJuego = false;
+    itemsRecogidos = 0;
+    posXJugador = -25;
+    posYJugador = 28;
+    // item 1
+    posXIt1 = -3;
+    posYIt1 = 15;
+    activoIt1 = true;
+    // item 2
+    posXIt2 = 19;
+    posYIt2 = 28;
+    activoIt2 = true;
+    // item 3
+    posXIt3 = 2.5;
+    posYIt3 = -2;
+    activoIt3 = true;
+    // item 4
+    posXIt4 = -25;
+    posYIt4 = -5;
+    activoIt4 = true;
+    // item 5
+    posXIt5 = 0;
+    posYIt5 = -25;
+    activoIt5 = true;
+}
 
 void myTimer(int i) {
-    if (juegoIniciado){
-        segundos--;
+    if (juegoIniciado && !juegoPausado){
+        segundos-=0.25;
+        // MOVIMIENTO ENEMIGOS
+        movimientoEnemigo(posXPildora,posYPildora);
+        movimientoEnemigo(posXBacteria,posYBacteria);
+        movimientoEnemigo(posXBebe,posYBebe);
+        // REVISAR COLISION ENEMIGOS CON JUGADOR
+        if (checaColisionPersonaje(posXPildora,posYPildora) || checaColisionPersonaje(posXBacteria,posYBacteria)
+            || checaColisionPersonaje(posXBebe,posYBebe)){
+                vidas--;
+                reiniciarPosicionEnemigos();
+            }
+        // REVISAR COLISION DE ITEMS CON JUGADOR
+        // item 1
+        if (checaColisionPersonaje(posXIt1,posYIt1) && activoIt1){
+            activoIt1 = false;
+            itemsRecogidos++;
+        }
+        // item 2
+        if (checaColisionPersonaje(posXIt2,posYIt2) && activoIt2){
+            activoIt2 = false;
+            itemsRecogidos++;
+        }
+
+        // item 3
+        if (checaColisionPersonaje(posXIt3,posYIt3) && activoIt3){
+            activoIt3 = false;
+            itemsRecogidos++;
+        }
+
+        // item 4
+        if (checaColisionPersonaje(posXIt4,posYIt4) && activoIt4){
+            activoIt4 = false;
+            itemsRecogidos++;
+        }
+
+        // item 5
+        if (checaColisionPersonaje(posXIt5,posYIt5) && activoIt5){
+            activoIt5 = false;
+            itemsRecogidos++;
+        }
+
+
+        // PERDER SI VIDAS = 0
+        if (vidas <=0){
+            reiniciarJuego();
+        }
     }
     if (segundos == 0){
+        reiniciarJuego();
         segundos = 60;
     }
     glutPostRedisplay();
-    glutTimerFunc(1000,myTimer,1);
+    glutTimerFunc(250,myTimer,1);
 }
 
 //Makes the image into a texture, and returns the id of the texture
@@ -118,7 +278,6 @@ void loadTexture(Image* image,int k)
 
 void initRendering()
 {
-
     GLuint i=0;
     GLfloat ambientLight[] = {1.0f, 1.0f, 1.0f, 1.0f};
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambientLight);
@@ -182,6 +341,39 @@ void initRendering()
     glmUnitize(&models[PILDORA_MOD]);
     glmVertexNormals(&models[PILDORA_MOD], 90.0, GL_TRUE);
 
+    //personaje bacteria
+    rutaObj = fullPath + "objects/germen.obj";
+    models[BACTERIA_MOD] = *glmReadOBJ(rutaObj.c_str());
+    glmUnitize(&models[BACTERIA_MOD]);
+    glmVertexNormals(&models[BACTERIA_MOD], 90.0, GL_TRUE);
+
+    //personaje bebe
+    rutaObj = fullPath + "objects/pildora.obj";
+    models[BEBE_MOD] = *glmReadOBJ(rutaObj.c_str());
+    glmUnitize(&models[BEBE_MOD]);
+    glmVertexNormals(&models[BEBE_MOD], 90.0, GL_TRUE);
+
+    // item fruta
+    rutaObj = fullPath + "objects/soap2.obj";
+    models[FRUTA_MOD] = *glmReadOBJ(rutaObj.c_str());
+    glmUnitize(&models[FRUTA_MOD]);
+    glmVertexNormals(&models[FRUTA_MOD], 90.0, GL_TRUE);
+    // item verdura
+    rutaObj = fullPath + "objects/soap2.obj";
+    models[VERDURA_MOD] = *glmReadOBJ(rutaObj.c_str());
+    glmUnitize(&models[VERDURA_MOD]);
+    glmVertexNormals(&models[VERDURA_MOD], 90.0, GL_TRUE);
+    // item jabon
+    rutaObj = fullPath + "objects/soap2.obj";
+    models[JABON_MOD] = *glmReadOBJ(rutaObj.c_str());
+    glmUnitize(&models[JABON_MOD]);
+    glmVertexNormals(&models[JABON_MOD], 90.0, GL_TRUE);
+    // item anti
+    rutaObj = fullPath + "objects/soap2.obj";
+    models[ANTI_MOD] = *glmReadOBJ(rutaObj.c_str());
+    glmUnitize(&models[ANTI_MOD]);
+    glmVertexNormals(&models[ANTI_MOD], 90.0, GL_TRUE);
+
     delete image;
 }
 
@@ -203,6 +395,57 @@ void reshape(int width, int height){
   gluLookAt(0, 0, 1, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
 }
 
+void dibujaItems(){
+    // ITEMS
+    // item 1
+    if (activoIt1){
+        glPushMatrix();
+        glTranslated(posXIt1, posYIt1, 0.2);
+        glScaled(15, 15, 0.08);
+        glRotated(25,1,0,0);
+        glmDraw(&models[JABON_MOD],  GLM_TEXTURE);
+        glPopMatrix();
+    }
+    // item 2
+    if (activoIt2){
+        glPushMatrix();
+        glTranslated(posXIt2, posYIt2, 0.2);
+        glScaled(15, 15, 0.08);
+        glRotated(25,1,0,0);
+        glmDraw(&models[FRUTA_MOD],  GLM_TEXTURE);
+        glPopMatrix();
+    }
+
+    // item 3
+    if (activoIt3){
+        glPushMatrix();
+        glTranslated(posXIt3, posYIt3, 0.2);
+        glScaled(15, 15, 0.08);
+        glRotated(25,1,0,0);
+        glmDraw(&models[VERDURA_MOD],  GLM_TEXTURE);
+        glPopMatrix();
+    }
+
+     // item 4
+    if (activoIt4){
+        glPushMatrix();
+        glTranslated(posXIt4, posYIt4, 0.2);
+        glScaled(15, 15, 0.08);
+        glRotated(25,1,0,0);
+        glmDraw(&models[ANTI_MOD],  GLM_TEXTURE);
+        glPopMatrix();
+    }
+
+    // item 5
+    if (activoIt5){
+        glPushMatrix();
+        glTranslated(posXIt5, posYIt5, 0.2);
+        glScaled(15, 15, 0.08);
+        glRotated(25,1,0,0);
+        glmDraw(&models[JABON_MOD],  GLM_TEXTURE);
+        glPopMatrix();
+    }
+}
 
 void dibujar_paredes(){
 
@@ -303,11 +546,29 @@ void dibujar_paredes(){
 
     // PILDORA
     glPushMatrix();
-    glTranslated(20, posYJugador, 0.2);
+    glTranslated(posXPildora, posYPildora, 0.2);
     glScaled(2, 2, 0.08);
     glRotated(25,1,0,0);
     glmDraw(&models[PILDORA_MOD],  GLM_TEXTURE);
     glPopMatrix();
+
+    // BACTERIA
+    glPushMatrix();
+    glTranslated(posXBacteria, posYBacteria, 0.2);
+    glScaled(2, 2, 0.08);
+    glRotated(25,1,0,0);
+    glmDraw(&models[BACTERIA_MOD],  GLM_TEXTURE);
+    glPopMatrix();
+
+    // BEBE
+    glPushMatrix();
+    glTranslated(posXBebe, posYBebe, 0.2);
+    glScaled(2, 2, 0.08);
+    glRotated(25,1,0,0);
+    glmDraw(&models[BEBE_MOD],  GLM_TEXTURE);
+    glPopMatrix();
+
+    dibujaItems();
 
     // JUGADOR
     glPushMatrix();
@@ -316,6 +577,7 @@ void dibujar_paredes(){
     glRotated(25,1,0,0);
     glmDraw(&models[PLAYER_MOD], GLM_TEXTURE);
     glPopMatrix();
+
 
     glPopMatrix();
 }
@@ -348,12 +610,28 @@ void dibujar_stats() {
     itoa (vidas,vidasString,10);
     strcat(opcionesArriba, vidasString);
 
-    glRasterPos2f(-30,10);
+    glRasterPos2f(-30,15);
     for (int k=0; opcionesArriba[k]!='\0'; k++) {
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, opcionesArriba[k]);
     }
 
-    // desplegar las opciones de segunda linea
+     // desplegar las opciones de segunda linea
+    char opcionesMedio[10]="";
+    sprintf(opcionesMedio,"%s","Items: ");
+    // agregar cantidad de recogidos al string
+    char recogidos[3];
+    itoa (itemsRecogidos,recogidos,10);
+    strcat(opcionesMedio, recogidos);
+    strcat(opcionesMedio,"/5");
+
+    glRasterPos2f(-30,-5);
+    for (int k=0; opcionesMedio[k]!='\0'; k++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, opcionesMedio[k]);
+    }
+
+
+
+    // desplegar las opciones de tercera linea
     char opcionesAbajo[10]="";
     sprintf(opcionesAbajo,"%s","Segs: ");
     // agregar cantidad de vidas al string
@@ -361,10 +639,11 @@ void dibujar_stats() {
     itoa (segundos,segundosString,10);
     strcat(opcionesAbajo, segundosString);
 
-    glRasterPos2f(-30,-10);
+    glRasterPos2f(-30,-25);
     for (int k=0; opcionesAbajo[k]!='\0'; k++) {
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, opcionesAbajo[k]);
     }
+
     // dibujar textura
     glBindTexture(GL_TEXTURE_2D, texName[TEXTURE_STATS]);
     glBegin(GL_QUADS);
@@ -425,12 +704,19 @@ void keyboard(unsigned char key, int x, int y){
             juegoIniciado = true;
             glutPostRedisplay();
             break;
+        case 'p':
+        case 'P':
+            if(juegoIniciado){
+                juegoPausado=!juegoPausado;
+                glutPostRedisplay();
+            }
+            break;
 
     }
 }
 
 void mySpecialKeyboard (int key, int x, int y){
-    if (juegoIniciado) {
+    if (juegoIniciado && !juegoPausado) {
         if (key == GLUT_KEY_UP && posYJugador < 30) {
             if(!checaColisionParedes(posXJugador, posYJugador+velocidadPersonaje)){
                 posYJugador+= velocidadPersonaje;
