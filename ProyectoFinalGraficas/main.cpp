@@ -27,6 +27,7 @@ using namespace std;
 #define VERDURA_MOD 5
 #define JABON_MOD 6
 #define ANTI_MOD 7
+#define FRUTA2_MOD 8
 
 GLMmodel models[MODEL_COUNT];
 
@@ -48,7 +49,7 @@ bool ganoJuego = false;
 bool perdioJuego = false;
 bool juegoPausado = false;
 int itemsRecogidos = 0;
-int totalItems = 5;
+int totalItems = 6;
 int consejoActual = 0;
 int angulo =0;
 
@@ -79,6 +80,10 @@ bool activoIt4 = true;
 float posXIt5 = 0;
 float posYIt5 = -25;
 bool activoIt5 = true;
+// item 6
+float posXIt6 = -28;
+float posYIt6 = -28;
+bool activoIt6 = true;
 
 // variables de enemigos
 float posXPildora = 30;
@@ -87,10 +92,12 @@ float posXBacteria = 30;
 float posYBacteria = -28;
 float posXBebe = -30;
 float posYBebe = -28;
-float velocidadEnemigo = 1.25;
+float velocidadPildora = 1.25;
+float velocidadBebe = 1.03;
+float velocidadBacteria = 1.51;
 
 // variables de texturas
-const int TEXTURE_COUNT=10;
+const int TEXTURE_COUNT=12;
 const int TEXTURE_MENU = 0;
 const int TEXTURE_INSTRUCCIONES = 1;
 const int TEXTURE_CREDITOS = 2;
@@ -101,13 +108,14 @@ const int TEXTURE_C1 = 6;
 const int TEXTURE_C2 = 7;
 const int TEXTURE_C3 = 8;
 const int TEXTURE_C4 = 9;
+const int TEXTURE_GANAR = 10;
+const int TEXTURE_PERDER = 11;
 
 
 static GLuint texName[TEXTURE_COUNT];
 int bannerSeleccionado = TEXTURE_MENU;
 
-void getParentPath()
-{
+void getParentPath(){
     for (int i = (int)fullPath.length()-1; i>=0 && fullPath[i] != '\\'; i--) {
         fullPath.erase(i,1);
     }
@@ -117,13 +125,13 @@ bool checaColisionParedes(float x, float y){
     // revisar si la siguiente posicion del jugador no colisiona con algun muro
 
     // PARED SUPERIOR DERECHA
-    return ((x >= 14 && x <= 29) && (y >= 22.5 && y <= 25)) ||
+    return ((x >= 14 && x <= 32) && (y >= 22.5 && y <= 25)) ||
     // PARED SUPERIOR IZQUIERDA
-    ((x <= -14 && x >= -29) && (y >= 22.5 && y <= 25)) ||
+    ((x <= -14 && x >= -32) && (y >= 22.5 && y <= 25)) ||
     // PARED INFERIOR DERECHA
-    ((x >= 14 && x <= 29) && (y <= -22.5 && y >= -25)) ||
+    ((x >= 14 && x <= 32) && (y <= -22.5 && y >= -25)) ||
     // PARED INFERIOR IZQUIERDA
-    ((x <= -14 && x >= -29) && (y <= -22.5 && y >= -25)) ||
+    ((x <= -14 && x >= -32) && (y <= -22.5 && y >= -25)) ||
     // IZQ CRUZ CENTRAL
     ((x >= -19 && x <= -1.5) && (y <= 5 && y >= 0)) ||
     // ARRIBA CRUZ CENTRAL
@@ -139,66 +147,52 @@ bool checaColisionPersonaje(float x, float y){
         (y<(posYJugador+hitBox) && y >(posYJugador-hitBox));
 }
 
-void movimientoEnemigo(float &x, float &y){
+void movimientoEnemigo(float &x, float &y, float velocidad){
     if (posXJugador > x){
-        if (!checaColisionParedes(x+velocidadEnemigo,y)){
-            x+=velocidadEnemigo;
+        if (!checaColisionParedes(x+velocidad,y)){
+            x+=velocidad;
         }
     } else {
-        if (!checaColisionParedes(x-velocidadEnemigo,y)){
-            x-=velocidadEnemigo;
+        if (!checaColisionParedes(x-velocidad,y)){
+            x-=velocidad;
         }
     }
 
     if (posYJugador > y){
-        if (!checaColisionParedes(x,y+velocidadEnemigo)){
-            y+=velocidadEnemigo;
+        if (!checaColisionParedes(x,y+velocidad)){
+            y+=velocidad;
         }
     } else {
-        if (!checaColisionParedes(x,y-velocidadEnemigo)){
-            y-=velocidadEnemigo;
+        if (!checaColisionParedes(x,y-velocidad)){
+            y-=velocidad;
         }
     }
 }
 
-void reiniciarPosicionEnemigos(){
+void reiniciarPosicionPersonajes(){
      posXPildora = 30;
      posYPildora = 28;
      posXBacteria = 30;
      posYBacteria = -28;
      posXBebe = -30;
      posYBebe = -28;
+     posXJugador = -25;
+     posYJugador = 28;
 }
 
 void reiniciarJuego(){
-    reiniciarPosicionEnemigos();
+    reiniciarPosicionPersonajes();
     vidas = 2;
     segundos = 60.0;
     juegoIniciado = false;
-    ganoJuego = false;
     itemsRecogidos = 0;
-    posXJugador = -25;
-    posYJugador = 28;
-    // item 1
-    posXIt1 = -3;
-    posYIt1 = 15;
+    // items
     activoIt1 = true;
-    // item 2
-    posXIt2 = 22;
-    posYIt2 = 28;
     activoIt2 = true;
-    // item 3
-    posXIt3 = 2.5;
-    posYIt3 = -2;
     activoIt3 = true;
-    // item 4
-    posXIt4 = -25;
-    posYIt4 = -5;
     activoIt4 = true;
-    // item 5
-    posXIt5 = 0;
-    posYIt5 = -25;
     activoIt5 = true;
+    activoIt6 = true;
 }
 
 void myTimer(int i) {
@@ -206,9 +200,11 @@ void myTimer(int i) {
     if (juegoIniciado && !juegoPausado){
         segundos-=0.25;
         // MOVIMIENTO ENEMIGOS
-        movimientoEnemigo(posXPildora,posYPildora);
-        movimientoEnemigo(posXBacteria,posYBacteria);
-        movimientoEnemigo(posXBebe,posYBebe);
+        movimientoEnemigo(posXPildora,posYPildora,velocidadPildora);
+        movimientoEnemigo(posXBacteria,posYBacteria,velocidadBacteria);
+        movimientoEnemigo(posXBebe,posYBebe,velocidadBebe);
+
+
         // REVISAR COLISION ENEMIGOS CON JUGADOR
         if (checaColisionPersonaje(posXPildora,posYPildora) || checaColisionPersonaje(posXBacteria,posYBacteria)
             || checaColisionPersonaje(posXBebe,posYBebe)){
@@ -216,7 +212,7 @@ void myTimer(int i) {
                 sprintf(rutaSonido,"%s%s", fullPath.c_str() , "sonidos/golpe.wav");
                 PlaySound(TEXT(rutaSonido), NULL, SND_FILENAME | SND_ASYNC);
                 vidas--;
-                reiniciarPosicionEnemigos();
+                reiniciarPosicionPersonajes();
             }
         // REVISAR COLISION DE ITEMS CON JUGADOR
         char rutaSonido[200];
@@ -254,6 +250,13 @@ void myTimer(int i) {
             itemsRecogidos++;
             PlaySound(TEXT(rutaSonido), NULL, SND_FILENAME | SND_ASYNC);
         }
+        // item 6
+        if (checaColisionPersonaje(posXIt6,posYIt6) && activoIt6){
+            activoIt6 = false;
+            itemsRecogidos++;
+            PlaySound(TEXT(rutaSonido), NULL, SND_FILENAME | SND_ASYNC);
+        }
+
         // PERDER SI VIDAS = 0
         if (vidas <=0){
             perdioJuego = true;
@@ -267,8 +270,13 @@ void myTimer(int i) {
             char rutaSonido[200];
             sprintf(rutaSonido,"%s%s", fullPath.c_str() , "sonidos/tada.wav");
             PlaySound(TEXT(rutaSonido), NULL, SND_FILENAME | SND_ASYNC);
-            segundos = 60;
             ganoJuego=true;
+        } else {
+            char rutaSonido[200];
+            sprintf(rutaSonido,"%s%s", fullPath.c_str() , "sonidos/golpe.wav");
+            PlaySound(TEXT(rutaSonido), NULL, SND_FILENAME | SND_ASYNC);
+            perdioJuego = true;
+            reiniciarJuego();
         }
     }
     glutPostRedisplay();
@@ -276,8 +284,7 @@ void myTimer(int i) {
 }
 
 //Makes the image into a texture, and returns the id of the texture
-void loadTexture(Image* image,int k)
-{
+void loadTexture(Image* image,int k){
     glBindTexture(GL_TEXTURE_2D, texName[k]); //Tell OpenGL which texture to edit
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -299,19 +306,7 @@ void loadTexture(Image* image,int k)
 
 }
 
-void initRendering()
-{
-    GLuint i=0;
-    /*GLfloat ambientLight[] = {1.0f, 1.0f, 1.0f, 1.0f};
-    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambientLight);
-
-    GLfloat directedLight[] = {1.0f, 1.0f, 1.0f, 1.0f};
-    GLfloat directedLightPos[] = {1.0f, 1.0f, 1.0f, 0.0f};
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, directedLight);
-    glLightfv(GL_LIGHT0, GL_POSITION, directedLightPos);
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-    glEnable(GL_NORMALIZE);*/
+void initRendering(){
     glEnable(GL_DEPTH_TEST);
     glShadeModel(GL_SMOOTH);
 
@@ -364,8 +359,16 @@ void initRendering()
     image = loadBMP(ruta);
     loadTexture(image,TEXTURE_C4);
 
+    sprintf(ruta,"%s%s", fullPath.c_str() , "Texturas/ganar.bmp");
+    image = loadBMP(ruta);
+    loadTexture(image,TEXTURE_GANAR);
+
+    sprintf(ruta,"%s%s", fullPath.c_str() , "Texturas/perder.bmp");
+    image = loadBMP(ruta);
+    loadTexture(image,TEXTURE_PERDER);
+
     //personaje jugador
-    string rutaObj = fullPath + "objects/persona.obj";
+    string rutaObj = fullPath + "objects/persona2.obj";
     models[PLAYER_MOD] = *glmReadOBJ(rutaObj.c_str());
     glmUnitize(&models[PLAYER_MOD]);
     glmVertexNormals(&models[PLAYER_MOD], 90.0, GL_TRUE);
@@ -389,25 +392,30 @@ void initRendering()
     glmVertexNormals(&models[BEBE_MOD], 90.0, GL_TRUE);
 
     // item fruta
-    rutaObj = fullPath + "objects/soap2.obj";
+    rutaObj = fullPath + "objects/manzana.obj";
     models[FRUTA_MOD] = *glmReadOBJ(rutaObj.c_str());
     glmUnitize(&models[FRUTA_MOD]);
     glmVertexNormals(&models[FRUTA_MOD], 90.0, GL_TRUE);
     // item verdura
-    rutaObj = fullPath + "objects/soap2.obj";
+    rutaObj = fullPath + "objects/zanahoria.obj";
     models[VERDURA_MOD] = *glmReadOBJ(rutaObj.c_str());
     glmUnitize(&models[VERDURA_MOD]);
     glmVertexNormals(&models[VERDURA_MOD], 90.0, GL_TRUE);
     // item jabon
-    rutaObj = fullPath + "objects/soap2.obj";
+    rutaObj = fullPath + "objects/jabon.obj";
     models[JABON_MOD] = *glmReadOBJ(rutaObj.c_str());
     glmUnitize(&models[JABON_MOD]);
     glmVertexNormals(&models[JABON_MOD], 90.0, GL_TRUE);
     // item anti
-    rutaObj = fullPath + "objects/soap2.obj";
+    rutaObj = fullPath + "objects/anticonceptivo.obj";
     models[ANTI_MOD] = *glmReadOBJ(rutaObj.c_str());
     glmUnitize(&models[ANTI_MOD]);
     glmVertexNormals(&models[ANTI_MOD], 90.0, GL_TRUE);
+    // item fruta2
+    rutaObj = fullPath + "objects/naranja.obj";
+    models[FRUTA2_MOD] = *glmReadOBJ(rutaObj.c_str());
+    glmUnitize(&models[FRUTA2_MOD]);
+    glmVertexNormals(&models[FRUTA2_MOD], 90.0, GL_TRUE);
 
     delete image;
 }
@@ -436,16 +444,16 @@ void dibujaItems(){
     if (activoIt1){
         glPushMatrix();
         glTranslated(posXIt1, posYIt1, 0.2);
-        glScaled(15, 15, 0.08);
+        glScaled(1.5, 1.5, 0.08);
         glRotated(angulo,1,0,0);
-        glmDraw(&models[JABON_MOD],  GLM_COLOR|GLM_FLAT);
+        glmDraw(&models[ANTI_MOD],  GLM_COLOR|GLM_FLAT);
         glPopMatrix();
     }
     // item 2
     if (activoIt2){
         glPushMatrix();
         glTranslated(posXIt2, posYIt2, 0.2);
-        glScaled(15, 15, 0.08);
+        glScaled(1, 1, 0.05);
         glRotated(angulo,1,0,0);
         glmDraw(&models[FRUTA_MOD],  GLM_COLOR|GLM_FLAT);
         glPopMatrix();
@@ -455,9 +463,9 @@ void dibujaItems(){
     if (activoIt3){
         glPushMatrix();
         glTranslated(posXIt3, posYIt3, 0.2);
-        glScaled(15, 15, 0.08);
-        glRotated(angulo,1,0,0);
-        glmDraw(&models[VERDURA_MOD],  GLM_COLOR|GLM_FLAT);
+        glScaled(2, 2, 0.08);
+        glRotated(angulo,1,1,0);
+        glmDraw(&models[FRUTA2_MOD],  GLM_COLOR|GLM_FLAT);
         glPopMatrix();
     }
 
@@ -465,9 +473,9 @@ void dibujaItems(){
     if (activoIt4){
         glPushMatrix();
         glTranslated(posXIt4, posYIt4, 0.2);
-        glScaled(15, 15, 0.08);
+        glScaled(2, 2, 0.08);
         glRotated(angulo,1,0,0);
-        glmDraw(&models[ANTI_MOD],  GLM_COLOR|GLM_FLAT);
+        glmDraw(&models[VERDURA_MOD],  GLM_COLOR|GLM_FLAT);
         glPopMatrix();
     }
 
@@ -475,7 +483,16 @@ void dibujaItems(){
     if (activoIt5){
         glPushMatrix();
         glTranslated(posXIt5, posYIt5, 0.2);
-        glScaled(15, 15, 0.08);
+        glScaled(2, 2, 0.08);
+        glRotated(angulo,1,1,0);
+        glmDraw(&models[VERDURA_MOD],  GLM_COLOR|GLM_FLAT);
+        glPopMatrix();
+    }
+    // item 6
+    if (activoIt6){
+        glPushMatrix();
+        glTranslated(posXIt6, posYIt6, 0.2);
+        glScaled(8, 8, 0.08);
         glRotated(angulo,1,0,0);
         glmDraw(&models[JABON_MOD],  GLM_COLOR|GLM_FLAT);
         glPopMatrix();
@@ -509,9 +526,46 @@ void dibujaConsejo(){
     }
 }
 
+void dibujaGanarPerder(){
+    if (ganoJuego){
+        // fondo
+        glBindTexture(GL_TEXTURE_2D, texName[TEXTURE_GANAR]);
+        glBegin(GL_QUADS);
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex3f(-20, -20, 0.5);
+
+        glTexCoord2f(1.0f, 0.0f);
+        glVertex3f(20, -20, 0.5);
+
+        glTexCoord2f(1.0f, 1.0f);
+        glVertex3f(20, 20, 0.5);
+
+        glTexCoord2f(0.0f, 1.0f);
+        glVertex3f(-20, 20, 0.5);
+        glEnd();
+    }
+    if (perdioJuego) {
+        // fondo
+        glBindTexture(GL_TEXTURE_2D, texName[TEXTURE_PERDER]);
+        glBegin(GL_QUADS);
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex3f(-20, -20, 0.5);
+
+        glTexCoord2f(1.0f, 0.0f);
+        glVertex3f(20, -20, 0.5);
+
+        glTexCoord2f(1.0f, 1.0f);
+        glVertex3f(20, 20, 0.5);
+
+        glTexCoord2f(0.0f, 1.0f);
+        glVertex3f(-20, 20, 0.5);
+        glEnd();
+    }
+}
+
 void dibujar_paredes(){
     glColor4ub(255, 255, 255,255);       // Color
-
+    dibujaGanarPerder();
     // fondo
     glBindTexture(GL_TEXTURE_2D, texName[TEXTURE_FONDO]);
     glBegin(GL_QUADS);
@@ -613,7 +667,7 @@ void dibujar_paredes(){
     // JUGADOR
     glPushMatrix();
     glTranslated(posXJugador, posYJugador, 0.2);
-    glScaled(4, 4, 0.08);
+    glScaled(3, 2, 0.08);
     glRotated(75,1,0,0);
     glRotated(-65,0,1,0);
     glmDraw(&models[PLAYER_MOD], GLM_COLOR|GLM_FLAT);
@@ -651,6 +705,7 @@ void dibujar_paredes(){
     glPopMatrix();
 
     glPopMatrix();
+
 }
 
 void dibujar_banner() {
@@ -693,7 +748,7 @@ void dibujar_stats() {
     char recogidos[3];
     itoa (itemsRecogidos,recogidos,10);
     strcat(opcionesMedio, recogidos);
-    strcat(opcionesMedio,"/5");
+    strcat(opcionesMedio,"/6");
 
     glRasterPos2f(-30,-5);
     for (int k=0; opcionesMedio[k]!='\0'; k++) {
@@ -777,6 +832,14 @@ void keyboard(unsigned char key, int x, int y){
             perdioJuego=false;
             glutPostRedisplay();
             break;
+        case 'r':
+        case 'R':
+            reiniciarJuego();
+            juegoIniciado = true;
+            ganoJuego=false;
+            perdioJuego=false;
+            glutPostRedisplay();
+            break;
         case 'p':
         case 'P':
             if(juegoIniciado){
@@ -819,8 +882,6 @@ void mySpecialKeyboard (int key, int x, int y){
                 glutPostRedisplay();
              }
         }
-        cout << "X: " << posXJugador;
-        cout << " Y: " << posYJugador << endl;
     }
 
 }
