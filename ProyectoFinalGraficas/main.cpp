@@ -45,9 +45,12 @@ int vidas = 2;
 double segundos = 60.0;
 bool juegoIniciado = false;
 bool ganoJuego = false;
+bool perdioJuego = false;
 bool juegoPausado = false;
 int itemsRecogidos = 0;
 int totalItems = 5;
+int consejoActual = 0;
+int angulo =0;
 
 // variables jugador
 float posXJugador = -25;
@@ -61,7 +64,7 @@ float posXIt1 = -3;
 float posYIt1 = 15;
 bool activoIt1 = true;
 // item 2
-float posXIt2 = 19;
+float posXIt2 = 22;
 float posYIt2 = 28;
 bool activoIt2 = true;
 // item 3
@@ -87,15 +90,18 @@ float posYBebe = -28;
 float velocidadEnemigo = 1.25;
 
 // variables de texturas
-const int TEXTURE_COUNT=7;
+const int TEXTURE_COUNT=10;
 const int TEXTURE_MENU = 0;
 const int TEXTURE_INSTRUCCIONES = 1;
 const int TEXTURE_CREDITOS = 2;
 const int TEXTURE_FONDO = 3;
 const int TEXTURE_BLOQUE = 4;
 const int TEXTURE_STATS = 5;
+const int TEXTURE_C1 = 6;
+const int TEXTURE_C2 = 7;
+const int TEXTURE_C3 = 8;
+const int TEXTURE_C4 = 9;
 
-const int TEXTURE_JUGADOR = 6;
 
 static GLuint texName[TEXTURE_COUNT];
 int bannerSeleccionado = TEXTURE_MENU;
@@ -178,7 +184,7 @@ void reiniciarJuego(){
     posYIt1 = 15;
     activoIt1 = true;
     // item 2
-    posXIt2 = 19;
+    posXIt2 = 22;
     posYIt2 = 28;
     activoIt2 = true;
     // item 3
@@ -196,6 +202,7 @@ void reiniciarJuego(){
 }
 
 void myTimer(int i) {
+    angulo = (angulo + 10) % 360;
     if (juegoIniciado && !juegoPausado){
         segundos-=0.25;
         // MOVIMIENTO ENEMIGOS
@@ -205,48 +212,64 @@ void myTimer(int i) {
         // REVISAR COLISION ENEMIGOS CON JUGADOR
         if (checaColisionPersonaje(posXPildora,posYPildora) || checaColisionPersonaje(posXBacteria,posYBacteria)
             || checaColisionPersonaje(posXBebe,posYBebe)){
+                char rutaSonido[200];
+                sprintf(rutaSonido,"%s%s", fullPath.c_str() , "sonidos/golpe.wav");
+                PlaySound(TEXT(rutaSonido), NULL, SND_FILENAME | SND_ASYNC);
                 vidas--;
                 reiniciarPosicionEnemigos();
             }
         // REVISAR COLISION DE ITEMS CON JUGADOR
+        char rutaSonido[200];
+        sprintf(rutaSonido,"%s%s", fullPath.c_str() , "sonidos/coin.wav");
         // item 1
         if (checaColisionPersonaje(posXIt1,posYIt1) && activoIt1){
             activoIt1 = false;
             itemsRecogidos++;
+            PlaySound(TEXT(rutaSonido), NULL, SND_FILENAME | SND_ASYNC);
         }
         // item 2
         if (checaColisionPersonaje(posXIt2,posYIt2) && activoIt2){
             activoIt2 = false;
             itemsRecogidos++;
+            PlaySound(TEXT(rutaSonido), NULL, SND_FILENAME | SND_ASYNC);
         }
 
         // item 3
         if (checaColisionPersonaje(posXIt3,posYIt3) && activoIt3){
             activoIt3 = false;
             itemsRecogidos++;
+            PlaySound(TEXT(rutaSonido), NULL, SND_FILENAME | SND_ASYNC);
         }
 
         // item 4
         if (checaColisionPersonaje(posXIt4,posYIt4) && activoIt4){
             activoIt4 = false;
             itemsRecogidos++;
+            PlaySound(TEXT(rutaSonido), NULL, SND_FILENAME | SND_ASYNC);
         }
 
         // item 5
         if (checaColisionPersonaje(posXIt5,posYIt5) && activoIt5){
             activoIt5 = false;
             itemsRecogidos++;
+            PlaySound(TEXT(rutaSonido), NULL, SND_FILENAME | SND_ASYNC);
         }
-
-
         // PERDER SI VIDAS = 0
         if (vidas <=0){
+            perdioJuego = true;
             reiniciarJuego();
         }
     }
+    // REVISAR SI GANO O PERDIO
     if (segundos == 0){
-        reiniciarJuego();
-        segundos = 60;
+        if (itemsRecogidos==totalItems){
+            reiniciarJuego();
+            char rutaSonido[200];
+            sprintf(rutaSonido,"%s%s", fullPath.c_str() , "sonidos/tada.wav");
+            PlaySound(TEXT(rutaSonido), NULL, SND_FILENAME | SND_ASYNC);
+            segundos = 60;
+            ganoJuego=true;
+        }
     }
     glutPostRedisplay();
     glutTimerFunc(250,myTimer,1);
@@ -279,18 +302,18 @@ void loadTexture(Image* image,int k)
 void initRendering()
 {
     GLuint i=0;
-    GLfloat ambientLight[] = {1.0f, 1.0f, 1.0f, 1.0f};
+    /*GLfloat ambientLight[] = {1.0f, 1.0f, 1.0f, 1.0f};
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambientLight);
 
     GLfloat directedLight[] = {1.0f, 1.0f, 1.0f, 1.0f};
     GLfloat directedLightPos[] = {1.0f, 1.0f, 1.0f, 0.0f};
     glLightfv(GL_LIGHT0, GL_DIFFUSE, directedLight);
     glLightfv(GL_LIGHT0, GL_POSITION, directedLightPos);
-    glEnable(GL_DEPTH_TEST);
-    glShadeModel(GL_SMOOTH);
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
-    glEnable(GL_NORMALIZE);
+    glEnable(GL_NORMALIZE);*/
+    glEnable(GL_DEPTH_TEST);
+    glShadeModel(GL_SMOOTH);
 
     glEnable(GL_TEXTURE_2D);
 
@@ -325,12 +348,24 @@ void initRendering()
     image = loadBMP(ruta);
     loadTexture(image,TEXTURE_STATS);
 
-    sprintf(ruta,"%s%s", fullPath.c_str() , "objects/violetacolores3.bmp");
+    sprintf(ruta,"%s%s", fullPath.c_str() , "Texturas/consejo1.bmp");
     image = loadBMP(ruta);
-    loadTexture(image,TEXTURE_JUGADOR);
+    loadTexture(image,TEXTURE_C1);
+
+    sprintf(ruta,"%s%s", fullPath.c_str() , "Texturas/consejo2.bmp");
+    image = loadBMP(ruta);
+    loadTexture(image,TEXTURE_C2);
+
+    sprintf(ruta,"%s%s", fullPath.c_str() , "Texturas/consejo3.bmp");
+    image = loadBMP(ruta);
+    loadTexture(image,TEXTURE_C3);
+
+    sprintf(ruta,"%s%s", fullPath.c_str() , "Texturas/consejo4.bmp");
+    image = loadBMP(ruta);
+    loadTexture(image,TEXTURE_C4);
 
     //personaje jugador
-    string rutaObj = fullPath + "objects/VioletObj.obj";
+    string rutaObj = fullPath + "objects/persona.obj";
     models[PLAYER_MOD] = *glmReadOBJ(rutaObj.c_str());
     glmUnitize(&models[PLAYER_MOD]);
     glmVertexNormals(&models[PLAYER_MOD], 90.0, GL_TRUE);
@@ -348,7 +383,7 @@ void initRendering()
     glmVertexNormals(&models[BACTERIA_MOD], 90.0, GL_TRUE);
 
     //personaje bebe
-    rutaObj = fullPath + "objects/pildora.obj";
+    rutaObj = fullPath + "objects/bebe2.obj";
     models[BEBE_MOD] = *glmReadOBJ(rutaObj.c_str());
     glmUnitize(&models[BEBE_MOD]);
     glmVertexNormals(&models[BEBE_MOD], 90.0, GL_TRUE);
@@ -402,8 +437,8 @@ void dibujaItems(){
         glPushMatrix();
         glTranslated(posXIt1, posYIt1, 0.2);
         glScaled(15, 15, 0.08);
-        glRotated(25,1,0,0);
-        glmDraw(&models[JABON_MOD],  GLM_TEXTURE);
+        glRotated(angulo,1,0,0);
+        glmDraw(&models[JABON_MOD],  GLM_COLOR|GLM_FLAT);
         glPopMatrix();
     }
     // item 2
@@ -411,8 +446,8 @@ void dibujaItems(){
         glPushMatrix();
         glTranslated(posXIt2, posYIt2, 0.2);
         glScaled(15, 15, 0.08);
-        glRotated(25,1,0,0);
-        glmDraw(&models[FRUTA_MOD],  GLM_TEXTURE);
+        glRotated(angulo,1,0,0);
+        glmDraw(&models[FRUTA_MOD],  GLM_COLOR|GLM_FLAT);
         glPopMatrix();
     }
 
@@ -421,8 +456,8 @@ void dibujaItems(){
         glPushMatrix();
         glTranslated(posXIt3, posYIt3, 0.2);
         glScaled(15, 15, 0.08);
-        glRotated(25,1,0,0);
-        glmDraw(&models[VERDURA_MOD],  GLM_TEXTURE);
+        glRotated(angulo,1,0,0);
+        glmDraw(&models[VERDURA_MOD],  GLM_COLOR|GLM_FLAT);
         glPopMatrix();
     }
 
@@ -431,8 +466,8 @@ void dibujaItems(){
         glPushMatrix();
         glTranslated(posXIt4, posYIt4, 0.2);
         glScaled(15, 15, 0.08);
-        glRotated(25,1,0,0);
-        glmDraw(&models[ANTI_MOD],  GLM_TEXTURE);
+        glRotated(angulo,1,0,0);
+        glmDraw(&models[ANTI_MOD],  GLM_COLOR|GLM_FLAT);
         glPopMatrix();
     }
 
@@ -441,13 +476,41 @@ void dibujaItems(){
         glPushMatrix();
         glTranslated(posXIt5, posYIt5, 0.2);
         glScaled(15, 15, 0.08);
-        glRotated(25,1,0,0);
-        glmDraw(&models[JABON_MOD],  GLM_TEXTURE);
+        glRotated(angulo,1,0,0);
+        glmDraw(&models[JABON_MOD],  GLM_COLOR|GLM_FLAT);
         glPopMatrix();
     }
 }
 
+void dibujaConsejo(){
+    if(juegoPausado){
+        if (consejoActual == 0){
+            glBindTexture(GL_TEXTURE_2D, texName[TEXTURE_C1]);
+        } else if (consejoActual==1){
+            glBindTexture(GL_TEXTURE_2D, texName[TEXTURE_C2]);
+        } else if(consejoActual==2){
+            glBindTexture(GL_TEXTURE_2D, texName[TEXTURE_C3]);
+        } else {
+            glBindTexture(GL_TEXTURE_2D, texName[TEXTURE_C4]);
+        }
+        glBegin(GL_QUADS);
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex3f(-15, -10, 0.5);
+
+        glTexCoord2f(1.0f, 0.0f);
+        glVertex3f(15, -10, 0.5);
+
+        glTexCoord2f(1.0f, 1.0f);
+        glVertex3f(15, 10, 0.5);
+
+        glTexCoord2f(0.0f, 1.0f);
+        glVertex3f(-15, 10, 0.5);
+        glEnd();
+    }
+}
+
 void dibujar_paredes(){
+    glColor4ub(255, 255, 255,255);       // Color
 
     // fondo
     glBindTexture(GL_TEXTURE_2D, texName[TEXTURE_FONDO]);
@@ -544,46 +607,54 @@ void dibujar_paredes(){
     glDisable(GL_TEXTURE_GEN_S);
     glDisable(GL_TEXTURE_GEN_T);
 
-    // PILDORA
-    glPushMatrix();
-    glTranslated(posXPildora, posYPildora, 0.2);
-    glScaled(2, 2, 0.08);
-    glRotated(25,1,0,0);
-    glmDraw(&models[PILDORA_MOD],  GLM_TEXTURE);
-    glPopMatrix();
-
-    // BACTERIA
-    glPushMatrix();
-    glTranslated(posXBacteria, posYBacteria, 0.2);
-    glScaled(2, 2, 0.08);
-    glRotated(25,1,0,0);
-    glmDraw(&models[BACTERIA_MOD],  GLM_TEXTURE);
-    glPopMatrix();
-
-    // BEBE
-    glPushMatrix();
-    glTranslated(posXBebe, posYBebe, 0.2);
-    glScaled(2, 2, 0.08);
-    glRotated(25,1,0,0);
-    glmDraw(&models[BEBE_MOD],  GLM_TEXTURE);
-    glPopMatrix();
-
+    dibujaConsejo();
     dibujaItems();
 
     // JUGADOR
     glPushMatrix();
     glTranslated(posXJugador, posYJugador, 0.2);
     glScaled(4, 4, 0.08);
-    glRotated(25,1,0,0);
-    glmDraw(&models[PLAYER_MOD], GLM_TEXTURE);
+    glRotated(75,1,0,0);
+    glRotated(-65,0,1,0);
+    glmDraw(&models[PLAYER_MOD], GLM_COLOR|GLM_FLAT);
     glPopMatrix();
 
+    // PILDORA
+    glPushMatrix();
+    glTranslated(posXPildora, posYPildora, 0.2);
+    glScaled(2, 2, 0.08);
+    glRotated(25,1,0,0);
+    glmDraw(&models[PILDORA_MOD],  GLM_COLOR|GLM_FLAT);
+    glPopMatrix();
+
+    // BACTERIA
+    glPushMatrix();
+    glTranslated(posXBacteria, posYBacteria, 0.2);
+    glScaled(2, 2, 0.08);
+    glRotated(angulo,1,0,0);
+    glmDraw(&models[BACTERIA_MOD],  GLM_COLOR|GLM_FLAT);
+    glPopMatrix();
+
+    // BEBE
+    glPushMatrix();
+    glTranslated(posXBebe, posYBebe, 0.2);
+    glScaled(2, 2, 0.08);
+    glRotated(-50,1,0,0);
+    glmDraw(&models[BEBE_MOD],  GLM_COLOR|GLM_FLAT);
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslated(0, 0, 0.2);
+    glScaled(0, 0, 0.08);
+    //glRotated(25,1,0,0);
+    glmDraw(&models[PILDORA_MOD],  GLM_TEXTURE);
+    glPopMatrix();
 
     glPopMatrix();
 }
 
 void dibujar_banner() {
-
+    glColor4ub(255, 255, 255,255);       // Color
     glBindTexture(GL_TEXTURE_2D, texName[bannerSeleccionado]);
     glBegin(GL_QUADS);
     glTexCoord2f(0.0f, 0.0f);
@@ -601,8 +672,8 @@ void dibujar_banner() {
 }
 
 void dibujar_stats() {
-
-     // desplegar las opciones de primera linea
+    glColor4ub(255, 255, 255,255);       // Color
+    // desplegar las opciones de primera linea
     char opcionesArriba[10]="";
     sprintf(opcionesArriba,"%s","Vidas: ");
     // agregar cantidad de vidas al string
@@ -702,11 +773,19 @@ void keyboard(unsigned char key, int x, int y){
         case 'i':
         case 'I':
             juegoIniciado = true;
+            ganoJuego=false;
+            perdioJuego=false;
             glutPostRedisplay();
             break;
         case 'p':
         case 'P':
             if(juegoIniciado){
+                if (!juegoPausado){
+                    consejoActual++;
+                    if (consejoActual>3){
+                        consejoActual=0;
+                    }
+                }
                 juegoPausado=!juegoPausado;
                 glutPostRedisplay();
             }
