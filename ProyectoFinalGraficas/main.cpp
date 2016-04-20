@@ -368,7 +368,7 @@ void initRendering(){
     loadTexture(image,TEXTURE_PERDER);
 
     //personaje jugador
-    string rutaObj = fullPath + "objects/persona2.obj";
+    string rutaObj = fullPath + "objects/disquemonita.obj";
     models[PLAYER_MOD] = *glmReadOBJ(rutaObj.c_str());
     glmUnitize(&models[PLAYER_MOD]);
     glmVertexNormals(&models[PLAYER_MOD], 90.0, GL_TRUE);
@@ -667,9 +667,9 @@ void dibujar_paredes(){
     // JUGADOR
     glPushMatrix();
     glTranslated(posXJugador, posYJugador, 0.2);
-    glScaled(3, 2, 0.08);
-    glRotated(75,1,0,0);
-    glRotated(-65,0,1,0);
+    glScaled(10, 3, 0.08);
+    glRotated(-5,1,1,1);
+    glRotated(30,1,1,0);
     glmDraw(&models[PLAYER_MOD], GLM_COLOR|GLM_FLAT);
     glPopMatrix();
 
